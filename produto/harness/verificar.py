@@ -63,21 +63,22 @@ def verificar(arquivo: Path, teoremas: list[str]) -> dict:
     fonte = arquivo.read_text(encoding="utf-8")
     t0 = time.monotonic()
 
-    # 1) compila o arquivo como está
-    codigo, saida = rodar_lean(arquivo)
-    erros = [l for l in saida.splitlines() if ": error" in l or "error:" in l]
-    sorrys = len(re.findall(r"declaration uses 'sorry'", saida))
-
-    # 2) cópia temporária com `#print axioms` no fim (não mexe no original)
+    # 1) uma única execução do Lean, numa cópia temporária com `#print axioms` no fim
+    #    (o original não é alterado; carregar o mathlib custa ~50 s, então roda uma vez só)
     with tempfile.NamedTemporaryFile(
         "w", suffix=".lean", dir=PROJETO_LEAN, delete=False, encoding="utf-8"
     ) as tmp:
         tmp.write(fonte + "\n\n" + "\n".join(f"#print axioms {t}" for t in teoremas) + "\n")
         caminho_tmp = Path(tmp.name)
     try:
-        _, saida_ax = rodar_lean(caminho_tmp)
+        codigo, saida_ax = rodar_lean(caminho_tmp)
     finally:
         caminho_tmp.unlink(missing_ok=True)
+    saida_ax = saida_ax.replace(str(caminho_tmp), str(arquivo))
+
+    erros = [l for l in saida_ax.splitlines() if ": error" in l or "error:" in l]
+    # Lean 4.37 escreve "declaration uses `sorry`"; versões antigas usavam 'sorry'
+    sorrys = len(re.findall(r"declaration uses [`']sorry[`']", saida_ax))
 
     por_teorema = {}
     for t in teoremas:

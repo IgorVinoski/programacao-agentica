@@ -33,3 +33,9 @@ Regra: **a previsão é escrita e commitada ANTES da etapa**, e o resultado é e
 **Aceitei / refiz / nem deleguei:** aceitei a pesquisa (falta conferir as fontes primárias antes de citar) e a infraestrutura. Rejeitei a troca de hipótese. Ainda **não li** o `verificar.py` com atenção, então não sei explicá-lo linha a linha (pendência para o critério de domínio).
 **Travei em / precisei aprender:** nada ainda; tudo foi delegado.
 **Horas:** ~1 h (contando a espera do download) · **Gasto:** assinatura (sem custo extra de API)
+
+#### Resultado do teste do verificador (2026-11-25, mesmo dia)
+- Ambiente pronto: **Lean 4.37.0-rc1 + mathlib v4.37.0-rc1**. Criar o projeto e baixar o cache levou **42 min**.
+- Arquivos de controle: `Limpo` passa; `ComSorry` e `ComAxioma` são rejeitados (`sorryAx` e o axioma `atalho` aparecem como extras). O veredito final saiu certo desde a 1ª versão.
+- **Bug achado no teste:** a contagem de `sorry` dava 0, porque o Lean 4.37 escreve "declaration uses \`sorry\`" com crase e o regex esperava aspas simples. O `sorry` só era pego pelo `sorryAx`. Corrigido. Lição: o agente escreveu o parser a partir do formato de uma versão antiga do Lean; sem os arquivos de controle, eu não teria visto.
+- **Tempo:** a 1ª execução levou **18 min** (cache frio no Windows); depois, cerca de 105 s por arquivo, porque o Lean rodava 2 vezes. Passei a rodar uma vez só: cerca de 45 s por arquivo (houve um pico isolado de 330 s). Isso pesa no harness: **cada tentativa do agente custa pelo menos ~45 s só para carregar o mathlib**. O lean-lsp-mcp mantém o servidor aberto e deve ser bem mais rápido para o laço do agente; o `verificar.py` fica como juiz final.
